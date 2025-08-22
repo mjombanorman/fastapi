@@ -2,46 +2,45 @@ from fastapi import FastAPI,status,HTTPException
 from scalar_fastapi import get_scalar_api_reference # type: ignore
 from typing import Any
 from schemas import ShipmentRead, ShipmentCreate,ShipmentUpdate
-from database import 
+from database import Database
 app = FastAPI()
+db=Database()
 
-@app.get("/shipment/latest")
-def get_latest_shipment()->dict[str,Any]:
-    id = max(shipments.keys())
-    return shipments[id]
+# @app.get("/shipment/latest")
+# def get_latest_shipment()->dict[str,Any]:
+#     id = max(shipments.keys())
+#     return shipments[id]
 
 @app.get("/shipment",response_model=ShipmentRead)
-def get_shipment(id: int) -> dict[str, Any]:
-    if id not in shipments:
+def get_shipment(id: int) -> ShipmentRead:
+    shipment = db.get(id)
+    if shipment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Given ID does not exist")
-    return shipments[id]
+    return shipment
 
 
 @app.post("/shipment")
 def submit_shipment(shipment: ShipmentCreate) -> dict[str, Any]:
-    content = shipment.content
-    weight = shipment.weight    
-    new_id = max(shipments.keys()) + 1
-    shipments[new_id] = {
-        **shipment.model_dump(),
-        "id": new_id,
-        "status": "placed"
-    }
-    save_shipments_to_file()
-    print(f"Shipment {new_id} with content '{content}' and weight {weight} kg has been created.")
-    return {"id":new_id}
+    new_id = db.create(shipment)
+    return {"id": new_id}
 
 
 @app.patch("/shipment",response_model=ShipmentRead)
-def update_shipment_status(id: int, body:ShipmentUpdate):
-    shipment = shipments[id]
-    shipment.update(body.model_dump(exclude_none=True))
-    return shipment
+def update_shipment_status(id: int, shipment:ShipmentUpdate)-> ShipmentRead | None:
+    updated_shipment=db.update(id, shipment)
+
+    if updated_shipment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Given ID does not exist")
+    return updated_shipment
 
 @app.delete("/shipment")
 def delete_shipment(id:int) -> dict[str, Any]:
-    shipments.pop(id)
-    return {"detail": f"shipment{id}is successfully deleted"}
+    shipment = db.delete(id)
+    if shipment is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Given ID does not exist")
+    
+    return {"detail": f"shipment{id} is successfully deleted"}
+   
 
 @app.get("/scalar", include_in_schema=False)
 async def scalar_html():
