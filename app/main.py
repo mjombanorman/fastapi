@@ -26,7 +26,7 @@ def get_shipment(id: int,session: SessionDep) -> ShipmentRead:
     shipment = session.get(Shipment,id)
     if shipment is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Given ID does not exist")
-    return ShipmentRead.model_validate(shipment)
+    return ShipmentRead.model_validate(shipment.__dict__)
 
 
 @app.post("/shipment")
@@ -58,7 +58,7 @@ def update_shipment_status(id: int, shipment_update:ShipmentUpdate,session:Sessi
     session.add(shipment)
     session.commit()
     session.refresh(shipment)
-    return ShipmentRead.model_validate(shipment)
+    return ShipmentRead.model_validate(shipment.__dict__)
 
 @app.delete("/shipment")
 def delete_shipment(id:int,session:SessionDep) -> dict[str, Any]:
