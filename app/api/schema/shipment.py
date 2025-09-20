@@ -10,14 +10,11 @@ class BaseShipment(SQLModel):
     weight: float = Field(le=25, ge=1, description="Weight must be between 1 and 25 kg")
     destination: int
   
-
-
 class ShipmentRead(BaseShipment, table=False):
     id: int = Field(default=None, primary_key=True)
     status: ShipmentStatus
     estimated_delivery: datetime
      
-
 class ShipmentCreate(BaseShipment):
       pass
 

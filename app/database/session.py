@@ -1,22 +1,22 @@
 from fastapi import Depends
 from typing_extensions import Annotated
-from sqlalchemy import create_engine
-from sqlmodel import SQLModel,Session
+from sqlmodel import SQLModel
+from app.config import settings
+from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
 
-
-engine = create_engine(
-url="sqlite:///shipments.db",
-echo=True,
-connect_args={"check_same_thread": False}
+engine = create_async_engine(
+    url=settings.POSTGRES_URL(),
+    echo=True,
+   
 )
-def create_db_and_tables():
-    
-    SQLModel.metadata.create_all(engine)
+async def create_db_and_tables():
+    async with engine.begin() as conn:
+        await conn.run_sync(SQLModel.metadata.create_all)
 
-def get_session():
-    with Session(bind=engine) as session:
+async def get_session():
+    async with async_sessionmaker(bind=engine,
+                                  expire_on_commit=False)() as session:
         yield session
 
-
-SessionDep=Annotated[Session, Depends(get_session)]
+SessionDep=Annotated[AsyncSession, Depends(get_session)]
